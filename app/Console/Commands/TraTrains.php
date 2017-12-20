@@ -63,6 +63,10 @@ class TraTrains extends Command
             $date = Carbon::today();
         }
         // 處理結尾範圍日期
+        if ($input_day>60) {
+            $this->error('上游資料沒有太久遠超過60天啦～ 那接下來就擷取到60天內的吧！');
+            $input_day = 60;
+        }
         $end_date = $date->copy()->addDays($input_day-1);
 
 
@@ -107,7 +111,6 @@ class TraTrains extends Command
         $file_zip_url = $this->base_url.$file_zip_name;
 
         if($is_show) {
-            $this->line('');
             $this->comment('--------------------');
             $this->comment('來源:'.$file_zip_url);
         }
@@ -116,6 +119,7 @@ class TraTrains extends Command
         $this->getTrainInfo($file_zip_name);
 
         if($is_show) {
+            $this->line('');
         }
     }
 
