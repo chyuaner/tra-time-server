@@ -18,8 +18,6 @@ class TraTrains extends Command
     protected $signature = 'tra:trains
                             {date? : 輸入欲取得日期(YYYY-MM-DD)}
                             {--d|day=1 : 輸入取得日的後續幾天範圍內也一起取}
-                            {--s|save : 儲存進本站資料庫}
-                            {--show : 在儲存時還是顯示擷取到的內容}
                             {--no-remove : 不移除暫存檔案}';
 
     /**
@@ -54,8 +52,6 @@ class TraTrains extends Command
         // 取得輸入參數資料
         $input_date = $this->argument('date');
         $input_day = $this->option('day');
-        $input_save = $this->option('save');
-        $input_show = $this->option('show');
         $input_noRemoveTempFile = $this->option('no-remove');
 
         // 標題
@@ -91,7 +87,6 @@ class TraTrains extends Command
         // 顯示資訊
         $this->line('索取範圍:'.
                     $date->toDateString().' ~ '.$end_date->toDateString());
-        $this->line('是否存入資料庫:'. ($input_save ? 'true' : 'false'));
 
         // 處理要爬取的網址陣列
         $dates = array();
@@ -100,54 +95,29 @@ class TraTrains extends Command
             array_push($dates, $the_date);
         }
 
-        // 需要完整顯示爬取內容的話
-        if(!$input_save || $input_show) {
-            foreach ($dates as $the_date) {
-                $this->doFetchTrainInfo(
-                    $the_date, true, $input_save, $input_noRemoveTempFile);
-            }
-        }
-        // 只需要精簡顯示的話
-        else {
-            $bar = $this->output->createProgressBar(count($dates));
-            $bar->setFormat(
-                ' %current%/%max% [%bar%] %percent:3s%% %message% %filename%');
-            $bar->start();
-            foreach ($dates as $the_date) {
-                $bar->setMessage(':');
-                $message = $this->base_url.$the_date->format('Ymd').'.zip';
-                $bar->setMessage($message, 'filename');
-                $bar->advance();
-                $this->doFetchTrainInfo(
-                    $the_date, false, $input_save, $input_noRemoveTempFile);
-            }
-            $bar->finish();
-        }
-    }
+        $bar = $this->output->createProgressBar(count($dates));
+        $bar->setFormat(
+            ' %current%/%max% [%bar%] %percent:3s%% %message% %filename%');
+        $bar->start();
+        foreach ($dates as $the_date) {
+            // 設定進度條文字
+            $bar->setMessage(':');
+            $message = $this->base_url.$the_date->format('Ymd').'.zip';
+            $bar->setMessage($message, 'filename');
 
-    private function doFetchTrainInfo(
-        $the_date, $is_show, $is_save, $is_noRemoveTempFile)
-    {
-        if($is_show) {
-            $this->comment('--------------------');
-            $this->comment('來源:'.$this->getZipUrl($the_date));
-        }
-
-        $this->downloadTrainInfoFile($the_date);
-        if($is_show) {
-            $this->showTrainInfo($the_date);
-        }
-        if($is_save) {
+            // 執行爬蟲動作
+            $this->downloadTrainInfoFile($the_date);
             $this->saveTrainInfo($the_date);
-        }
-        if(!$is_noRemoveTempFile) {
-            $this->removeTrainInfoFile($the_date);
-        }
+            if(!$input_noRemoveTempFile) {
+                $this->removeTrainInfoFile($the_date);
+            }
 
-        if($is_show) {
-            $this->line('');
+            // 進度條步驟+1
+            $bar->advance();
         }
+        $bar->finish();
     }
+
     protected function getDateString($the_date)
     {
         return $the_date->format('Ymd');
@@ -183,22 +153,12 @@ class TraTrains extends Command
 
     }
 
-    protected function showTrainInfo($the_date)
-    {
-        // 處理所需資料成 $content
-        $date_string = $this->getDateString($the_date);
-        $file_content = file_get_contents($this->dirname.$date_string.'.json');
-        $content = json_decode($file_content);
-
-        print_r($content);
-    }
-
     protected function saveTrainInfo($the_date)
     {
         // 處理所需資料成 $content
         $date_string = $this->getDateString($the_date);
         $file_content = file_get_contents($this->dirname.$date_string.'.json');
-        $content = json_decode($content);
+        $content = json_decode($file_content);
 
 
     }
