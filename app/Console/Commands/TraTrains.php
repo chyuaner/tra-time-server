@@ -3,7 +3,10 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use GuzzleHttp\Client;
+use Chumper\Zipper\Zipper;
 
 class TraTrains extends Command
 {
@@ -27,7 +30,8 @@ class TraTrains extends Command
 
     protected $base_url = 'http://163.29.3.98/json/'; // TODO: 挪到.env處理
     protected $default_days = 14; // TODO: 挪到.env處理
-    protected $max_days = 60; // TODO:
+    protected $max_days = 60; // TODO: 挪到.env處理
+    protected $dirname = 'storage/app/fetch/';
 
     /**
      * Create a new command instance.
@@ -70,11 +74,13 @@ class TraTrains extends Command
             $date = Carbon::today();
         }
         // 計算實際可擷取的天數最大值
-        $enable_max_day = $this->max_days - ($date->diffInDays(Carbon::today()));
+        $enable_max_day =
+            $this->max_days - ($date->diffInDays(Carbon::today()));
 
         // 處理結尾範圍日期
         if ($input_day>$enable_max_day) {
-            $this->error('上游資料沒有太久遠超過'.$enable_max_day.'天啦～那接下來就擷取到'.$enable_max_day.'天內的吧！');
+            $this->error('上游資料沒有太久遠超過'.$enable_max_day.'天啦～'.
+                         '那接下來就擷取到'.$enable_max_day.'天內的吧！');
             $input_day = $enable_max_day;
         }
         $end_date = $date->copy()->addDays($input_day-1);
@@ -101,7 +107,8 @@ class TraTrains extends Command
         // 只需要精簡顯示的話
         else {
             $bar = $this->output->createProgressBar(count($dates));
-            $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %message% %filename%');
+            $bar->setFormat(
+                ' %current%/%max% [%bar%] %percent:3s%% %message% %filename%');
             $bar->start();
             foreach ($dates as $the_date) {
                 $bar->setMessage(':');
@@ -116,33 +123,86 @@ class TraTrains extends Command
 
     private function doFetchTrainInfo($the_date, $is_show, $is_save)
     {
-        // 處理下載網址 $file_zip_url
-        $file_zip_name = $the_date->format('Ymd').'.zip';
-        $file_zip_url = $this->base_url.$file_zip_name;
-
         if($is_show) {
             $this->comment('--------------------');
-            $this->comment('來源:'.$file_zip_url);
+            $this->comment('來源:'.$this->getZipUrl($the_date));
         }
 
-        $this->downloadTrainInfoZip($file_zip_url);
-        $this->getTrainInfo($file_zip_name);
+        $this->downloadTrainInfoFile($the_date);
+        if($is_show) {
+            $this->showTrainInfo($the_date);
+        }
+        if($is_save) {
+            $this->saveTrainInfo($the_date);
+        }
+        $this->removeTrainInfoFile($the_date);
 
         if($is_show) {
             $this->line('');
         }
     }
-
-    private function downloadTrainInfoZip($file_zip_url)
+    protected function getDateString($the_date)
     {
-        // 下載
-
-        // 解壓縮
-        return '20171220.json';
+        return $the_date->format('Ymd');
     }
 
-    private function getTrainInfo($file_name)
+    protected function getZipUrl($the_date)
     {
+        // 處理下載網址 $file_zip_url
+        $file_zip_name = $this->getDateString($the_date).'.zip';
+        $file_zip_url = $this->base_url.$file_zip_name;
 
+        return $file_zip_url;
+    }
+
+    protected function downloadTrainInfoFile($the_date)
+    {
+        // 轉成日期字串
+        $date_string = $this->getDateString($the_date);
+
+        // 下載
+        if (!is_dir($this->dirname)) {mkdir($this->dirname, 0755, true);}
+        $zip_file = fopen($this->dirname.$date_string.'.zip','w');
+        $client = new Client();
+        $response = $client->get($this->getZipUrl($the_date));
+        $zip_content = $response->getBody();
+        fwrite($zip_file,$zip_content);
+        fclose($zip_file);
+
+        // 解壓縮
+        $zipper = new Zipper;
+        $filename = $zipper->make($this->dirname.$date_string.'.zip')
+                           ->extractTo($this->dirname);
+
+    }
+
+    protected function showTrainInfo($the_date)
+    {
+        // 處理所需資料成 $content
+        $date_string = $this->getDateString($the_date);
+        $file_content = file_get_contents($this->dirname.$date_string.'.json');
+        $content = json_encode($content);
+
+
+    }
+
+    protected function saveTrainInfo($the_date)
+    {
+        // 處理所需資料成 $content
+        $date_string = $this->getDateString($the_date);
+        $file_content = file_get_contents($this->dirname.$date_string.'.json');
+        $content = json_encode($content);
+
+
+    }
+
+    protected function removeTrainInfoFile($the_date)
+    {
+        // 轉成日期字串
+        $date_string = $this->getDateString($the_date);
+
+        // 刪除檔案
+        unlink($this->dirname.$date_string.'.zip');
+        unlink($this->dirname.$date_string.'.json');
     }
 }
