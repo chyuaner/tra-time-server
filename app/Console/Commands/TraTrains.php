@@ -19,7 +19,8 @@ class TraTrains extends Command
                             {date? : 輸入欲取得日期(YYYY-MM-DD)}
                             {--d|day=1 : 輸入取得日的後續幾天範圍內也一起取}
                             {--s|save : 儲存進本站資料庫}
-                            {--show : 在儲存時還是顯示擷取到的內容}';
+                            {--show : 在儲存時還是顯示擷取到的內容}
+                            {--no-remove : 不移除暫存檔案}';
 
     /**
      * The console command description.
@@ -55,6 +56,7 @@ class TraTrains extends Command
         $input_day = $this->option('day');
         $input_save = $this->option('save');
         $input_show = $this->option('show');
+        $input_noRemoveTempFile = $this->option('no-remove');
 
         // 標題
         $this->info('取得台鐵班次資料，從政府資料開放平台');
@@ -101,7 +103,8 @@ class TraTrains extends Command
         // 需要完整顯示爬取內容的話
         if(!$input_save || $input_show) {
             foreach ($dates as $the_date) {
-                $this->doFetchTrainInfo($the_date, true, $input_save);
+                $this->doFetchTrainInfo(
+                    $the_date, true, $input_save, $input_noRemoveTempFile);
             }
         }
         // 只需要精簡顯示的話
@@ -115,13 +118,15 @@ class TraTrains extends Command
                 $message = $this->base_url.$the_date->format('Ymd').'.zip';
                 $bar->setMessage($message, 'filename');
                 $bar->advance();
-                $this->doFetchTrainInfo($the_date, false, $input_save);
+                $this->doFetchTrainInfo(
+                    $the_date, false, $input_save, $input_noRemoveTempFile);
             }
             $bar->finish();
         }
     }
 
-    private function doFetchTrainInfo($the_date, $is_show, $is_save)
+    private function doFetchTrainInfo(
+        $the_date, $is_show, $is_save, $is_noRemoveTempFile)
     {
         if($is_show) {
             $this->comment('--------------------');
@@ -135,7 +140,9 @@ class TraTrains extends Command
         if($is_save) {
             $this->saveTrainInfo($the_date);
         }
-        $this->removeTrainInfoFile($the_date);
+        if(!$is_noRemoveTempFile) {
+            $this->removeTrainInfoFile($the_date);
+        }
 
         if($is_show) {
             $this->line('');
@@ -181,9 +188,9 @@ class TraTrains extends Command
         // 處理所需資料成 $content
         $date_string = $this->getDateString($the_date);
         $file_content = file_get_contents($this->dirname.$date_string.'.json');
-        $content = json_encode($content);
+        $content = json_decode($file_content);
 
-
+        print_r($content);
     }
 
     protected function saveTrainInfo($the_date)
@@ -191,7 +198,7 @@ class TraTrains extends Command
         // 處理所需資料成 $content
         $date_string = $this->getDateString($the_date);
         $file_content = file_get_contents($this->dirname.$date_string.'.json');
-        $content = json_encode($content);
+        $content = json_decode($content);
 
 
     }
