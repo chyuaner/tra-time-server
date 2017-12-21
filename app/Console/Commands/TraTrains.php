@@ -27,6 +27,7 @@ class TraTrains extends Command
 
     protected $base_url = 'http://163.29.3.98/json/'; // TODO: 挪到.env處理
     protected $default_days = 14; // TODO: 挪到.env處理
+    protected $max_days = 60; // TODO:
 
     /**
      * Create a new command instance.
@@ -57,15 +58,24 @@ class TraTrains extends Command
         // 若有輸入欲爬取日期
         if (isset($input_date)) {
             $date = Carbon::parse($input_date);
+
+            // 若輸入的日期是在今天以前的話
+            if ($date < Carbon::today()) {
+                $this->error('上游資料沒有今日之前的資料喔！');
+                return false;
+            }
         }
         // 若沒輸入欲爬取日期，就以今日日期為主
         else {
             $date = Carbon::today();
         }
+        // 計算實際可擷取的天數最大值
+        $enable_max_day = $this->max_days - ($date->diffInDays(Carbon::today()));
+
         // 處理結尾範圍日期
-        if ($input_day>60) {
-            $this->error('上游資料沒有太久遠超過60天啦～ 那接下來就擷取到60天內的吧！');
-            $input_day = 60;
+        if ($input_day>$enable_max_day) {
+            $this->error('上游資料沒有太久遠超過'.$enable_max_day.'天啦～那接下來就擷取到'.$enable_max_day.'天內的吧！');
+            $input_day = $enable_max_day;
         }
         $end_date = $date->copy()->addDays($input_day-1);
 
