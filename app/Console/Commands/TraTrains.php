@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Train;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -153,14 +154,103 @@ class TraTrains extends Command
 
     }
 
+    protected function charToBool($char)
+    {
+        if ($char == 'Y')
+        {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    protected function noteToAllowedNoReserved($note_string)
+    {
+        // TODO
+        return true;
+    }
+
+    protected function noteToIsEveryday($note_string)
+    {
+        // TODO
+        return true;
+    }
+
     protected function saveTrainInfo($the_date)
     {
         // 處理所需資料成 $content
         $date_string = $this->getDateString($the_date);
         $file_content = file_get_contents($this->dirname.$date_string.'.json');
-        $content = json_decode($file_content);
+        $content = json_decode($file_content, true);
 
+        // 爬取資料
+        foreach ($content['TrainInfos'] as $the_train) {
+            // 當班次的詳細資訊擷取
+            $capture_at = Carbon::now()->toDateTimeString();
+            $valid_date = $the_date->toDateString();
+            $train_type          = (int)$the_train['Type'];
+            $train_code          = (int)$the_train['Train'];
+            $is_have_breast_feed = $this->charToBool($the_train['BreastFeed']);
+            $is_have_package     = $this->charToBool($the_train['Package']);
+            $over_night_stn      = (int)$the_train['OverNightStn'];
+            $line_dir            = (int)$the_train['LineDir'];
+            $line                = (int)$the_train['Line'];
+            $is_have_dinning     = $this->charToBool($the_train['Dinning']);
+            $is_have_cripple     = $this->charToBool($the_train['Cripple']);
+            $train_class         = (int)$the_train['CarClass'];
+            $is_have_bike        = $this->charToBool($the_train['Bike']);
+            $note                = $the_train['Note'];
+            $note_eng            = $the_train['NoteEng'];
+            $is_everyday         = $this->noteToIsEveryday($note);
+            $is_extra_train      = !$is_everyday;
+            // $is_everyday         = $the_train['Everyday'];
+            // $is_extra_train      = $the_train['ExtraTrain'];
+            $is_allowed_no_reserved = $this->noteToAllowedNoReserved($note);
 
+            $db_train = Train::updateOrCreate(
+                ['valid_date' => $valid_date, 'train_code' => $train_code],
+                [
+                    'train_type'             => $train_type,
+                    'is_everyday'            => $is_everyday,
+                    'is_extra_train'         => $is_extra_train,
+                    'train_class'            => $train_class,
+                    'is_allowed_no_reserved' => $is_allowed_no_reserved,
+                    'line'                   => $line,
+                    'line_dir'               => $line_dir,
+                    'over_night_stn'         => $over_night_stn,
+                    'is_have_cripple'        => $is_have_cripple,
+                    'is_have_package'        => $is_have_package,
+                    'is_have_dinning'        => $is_have_dinning,
+                    'is_have_breast_feed'    => $is_have_breast_feed,
+                    'is_have_bike'           => $is_have_bike,
+                    'note'                   => $note,
+                    'note_eng'               => $note_eng,
+                    'capture_at'             => $capture_at
+                ]
+            );
+            // $db_train = new Train;
+            // $db_train = Train::firstOrCreate(['valid_date' => $valid_date, 'train_code' => $train_code]);
+            // $db_train->valid_date             = $valid_date;
+            // $db_train->train_code             = $train_code;
+            // $db_train->train_type             = $train_type;
+            // $db_train->is_everyday            = $is_everyday;
+            // $db_train->is_extra_train         = $is_extra_train;
+            // $db_train->train_class            = $train_class;
+            // $db_train->is_allowed_no_reserved = $is_allowed_no_reserved;
+            // $db_train->line                   = $line;
+            // $db_train->line_dir               = $line_dir;
+            // $db_train->over_night_stn         = $over_night_stn;
+            // $db_train->is_have_cripple        = $is_have_cripple;
+            // $db_train->is_have_package        = $is_have_package;
+            // $db_train->is_have_dinning        = $is_have_dinning;
+            // $db_train->is_have_breast_feed    = $is_have_breast_feed;
+            // $db_train->is_have_bike           = $is_have_bike;
+            // $db_train->note                   = $note;
+            // $db_train->note_eng               = $note_eng;
+            // $db_train->capture_at             = $capture_at;
+            // $db_train->save();
+        }
     }
 
     protected function removeTrainInfoFile($the_date)
