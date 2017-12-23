@@ -167,14 +167,30 @@ class TraTrains extends Command
 
     protected function noteToAllowedNoReserved($note_string)
     {
-        // TODO
-        return true;
+        if ( strpos($note_string, '不發售無座票') !== false
+          || strpos($note_string, '不發售團體票及無座票') !== false
+        )
+        {
+            return false;
+        }
+        else {
+            return true;
+        }
     }
 
     protected function noteToIsEveryday($note_string)
     {
-        // TODO
-        return true;
+        if (strpos($note_string, '每日行駛') !== false) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    protected function noteToIsExtraTrain($note_string)
+    {
+        return false;
     }
 
     protected function saveTrainInfo($the_date)
@@ -203,34 +219,53 @@ class TraTrains extends Command
             $note                = $the_train['Note'];
             $note_eng            = $the_train['NoteEng'];
             $is_everyday         = $this->noteToIsEveryday($note);
-            $is_extra_train      = !$is_everyday;
+            $is_extra_train      = $this->noteToIsExtraTrain($note);
             // $is_everyday         = $the_train['Everyday'];
             // $is_extra_train      = $the_train['ExtraTrain'];
             $is_allowed_no_reserved = $this->noteToAllowedNoReserved($note);
 
-            $db_train = Train::updateOrCreate(
-                ['valid_date' => $valid_date, 'train_code' => $train_code],
-                [
-                    'train_type'             => $train_type,
-                    'is_everyday'            => $is_everyday,
-                    'is_extra_train'         => $is_extra_train,
-                    'train_class'            => $train_class,
-                    'is_allowed_no_reserved' => $is_allowed_no_reserved,
-                    'line'                   => $line,
-                    'line_dir'               => $line_dir,
-                    'over_night_stn'         => $over_night_stn,
-                    'is_have_cripple'        => $is_have_cripple,
-                    'is_have_package'        => $is_have_package,
-                    'is_have_dinning'        => $is_have_dinning,
-                    'is_have_breast_feed'    => $is_have_breast_feed,
-                    'is_have_bike'           => $is_have_bike,
-                    'note'                   => $note,
-                    'note_eng'               => $note_eng,
-                    'capture_at'             => $capture_at
-                ]
-            );
+            $db_train = Train::updateOrCreateTrain($valid_date, $train_code, [
+                'train_type'             => $train_type,
+                'is_everyday'            => $is_everyday,
+                'is_extra_train'         => $is_extra_train,
+                'train_class'            => $train_class,
+                'is_allowed_no_reserved' => $is_allowed_no_reserved,
+                'line'                   => $line,
+                'line_dir'               => $line_dir,
+                'over_night_stn'         => $over_night_stn,
+                'is_have_cripple'        => $is_have_cripple,
+                'is_have_package'        => $is_have_package,
+                'is_have_dinning'        => $is_have_dinning,
+                'is_have_breast_feed'    => $is_have_breast_feed,
+                'is_have_bike'           => $is_have_bike,
+                'note'                   => $note,
+                'note_eng'               => $note_eng,
+                'capture_at'             => $capture_at
+            ]);
+            // $db_train = Train::updateOrCreate(
+            //     ['valid_date' => $valid_date, 'train_code' => $train_code],
+            //     [
+            //         'train_type'             => $train_type,
+            //         // 'is_everyday'            => $is_everyday,
+            //         // 'is_extra_train'         => $is_extra_train,
+            //         'train_class'            => $train_class,
+            //         'is_allowed_no_reserved' => $is_allowed_no_reserved,
+            //         // 'line'                   => $line,
+            //         // 'line_dir'               => $line_dir,
+            //         // 'over_night_stn'         => $over_night_stn,
+            //         // 'is_have_cripple'        => $is_have_cripple,
+            //         // 'is_have_package'        => $is_have_package,
+            //         // 'is_have_dinning'        => $is_have_dinning,
+            //         // 'is_have_breast_feed'    => $is_have_breast_feed,
+            //         // 'is_have_bike'           => $is_have_bike,
+            //         // 'note'                   => $note,
+            //         // 'note_eng'               => $note_eng,
+            //         // 'capture_at'             => $capture_at
+            //     ]
+            // );
             // $db_train = new Train;
             // $db_train = Train::firstOrCreate(['valid_date' => $valid_date, 'train_code' => $train_code]);
+            // // $db_train = Train::find([$valid_date, $train_code]);
             // $db_train->valid_date             = $valid_date;
             // $db_train->train_code             = $train_code;
             // $db_train->train_type             = $train_type;
@@ -249,6 +284,7 @@ class TraTrains extends Command
             // $db_train->note                   = $note;
             // $db_train->note_eng               = $note_eng;
             // $db_train->capture_at             = $capture_at;
+            // // $db_train->save(['valid_date' => $valid_date, 'train_code' => $train_code]);
             // $db_train->save();
         }
     }

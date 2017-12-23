@@ -20,6 +20,11 @@ class Train extends Model
      */
     protected $primaryKey = ['valid_date', 'train_code'];
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
     protected $fillable =   [
                             'valid_date',
                             'train_code',
@@ -40,6 +45,39 @@ class Train extends Model
                             'note_eng',
                             'capture_at'
                             ];
+
+    /**
+     * 新增或更新班次資料
+     * @param  string  $valid_date 適用日期
+     * @param  int     $train_code 班次編號
+     * @param  arrays  $content    內容
+     * @return boolean             有無成功
+     */
+    public static function updateOrCreateTrain($valid_date, $train_code, $content)
+    {
+        $count = self::where('valid_date', $valid_date)
+                     ->where('train_code', $train_code)
+                     ->count();
+
+        if($count) {
+            return self::where('valid_date', $valid_date)
+                       ->where('train_code', $train_code)
+                       ->update($content);
+        }
+        else
+        {
+            $attr = [
+                'valid_date' => $valid_date,
+                'train_code' => $train_code
+            ];
+
+            unset($content['valid_date']);
+            unset($content['train_code']);
+            $attr = $attr + $content;
+
+            return self::create($attr);
+        }
+    }
 
     public function atStation()
     {
