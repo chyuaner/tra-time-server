@@ -32,6 +32,7 @@ class TraTrains extends Command
     protected $default_days = 14; // TODO: 挪到.env處理
     protected $max_days = 60; // TODO: 挪到.env處理
     protected $dirname = 'storage/app/fetch/';
+    protected $capture_at;
 
     /**
      * Create a new command instance.
@@ -108,6 +109,7 @@ class TraTrains extends Command
 
             // 執行爬蟲動作
             $this->downloadTrainInfoFile($the_date);
+            $this->capture_at = Carbon::now()->toDateTimeString();
             $this->saveTrainInfo($the_date);
             if(!$input_noRemoveTempFile) {
                 $this->removeTrainInfoFile($the_date);
@@ -203,7 +205,7 @@ class TraTrains extends Command
         // 爬取資料
         foreach ($content['TrainInfos'] as $the_train) {
             // 當班次的詳細資訊擷取
-            $capture_at = Carbon::now()->toDateTimeString();
+            $capture_at     = $this->capture_at;
             $valid_date = $the_date->toDateString();
             $train_type          = (int)$the_train['Type'];
             $train_code          = (int)$the_train['Train'];
