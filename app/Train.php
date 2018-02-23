@@ -55,28 +55,13 @@ class Train extends Model
      */
     public static function updateOrCreateTrain($valid_date, $train_code, $content)
     {
-        $count = self::where('valid_date', $valid_date)
-                     ->where('train_code', $train_code)
-                     ->count();
+        $data = [
+            'valid_date' => $valid_date,
+            'train_code' => $train_code,
+        ];
+        $data = $data + $content;
 
-        if($count) {
-            return self::where('valid_date', $valid_date)
-                       ->where('train_code', $train_code)
-                       ->update($content);
-        }
-        else
-        {
-            $attr = [
-                'valid_date' => $valid_date,
-                'train_code' => $train_code
-            ];
-
-            unset($content['valid_date']);
-            unset($content['train_code']);
-            $attr = $attr + $content;
-
-            return self::create($attr);
-        }
+        return self::updateOrCreate($data);
     }
 
     public function atStation()
